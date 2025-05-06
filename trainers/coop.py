@@ -13,10 +13,13 @@ from dassl.optim import build_optimizer, build_lr_scheduler
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
+from transformers import CLIPModel, CLIPTokenizer
+
 _tokenizer = _Tokenizer()
 
 
 def load_clip_to_cpu(cfg):
+    
     backbone_name = cfg.MODEL.BACKBONE.NAME
     url = clip._MODELS[backbone_name]
     model_path = clip._download(url)
@@ -30,7 +33,15 @@ def load_clip_to_cpu(cfg):
         state_dict = torch.load(model_path, map_location="cpu")
 
     model = clip.build_model(state_dict or model.state_dict())
-
+    
+    ## CHANGE
+    state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-fmow-4.pt', map_location="cpu")
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RemoteCLIP-ViT-L-14.pt', map_location="cpu")
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RS5M_ViT-L-14.pt', map_location="cpu")
+    model = clip.build_model(state_dict)
+                             
+    #print('load_clip_to_cpu model dtype:', model.dtype)
+        
     return model
 
 
@@ -42,6 +53,8 @@ class TextEncoder(nn.Module):
         self.ln_final = clip_model.ln_final
         self.text_projection = clip_model.text_projection
         self.dtype = clip_model.dtype
+        
+        #print('TextEncoder dtype:', self.dtype)
 
     def forward(self, prompts, tokenized_prompts):
         x = prompts + self.positional_embedding.type(self.dtype)
@@ -56,7 +69,6 @@ class TextEncoder(nn.Module):
 
         return x
 
-
 class PromptLearner(nn.Module):
     def __init__(self, cfg, classnames, clip_model):
         super().__init__()
@@ -68,6 +80,8 @@ class PromptLearner(nn.Module):
         clip_imsize = clip_model.visual.input_resolution
         cfg_imsize = cfg.INPUT.SIZE[0]
         assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
+        
+        #print('PromptLearner dtype:', dtype)
 
         if ctx_init:
             # use given words to initialize context vectors
@@ -94,12 +108,17 @@ class PromptLearner(nn.Module):
         print(f"Number of context words (tokens): {n_ctx}")
 
         self.ctx = nn.Parameter(ctx_vectors)  # to be optimized
+        
+        #print('self.ctx.dtype')
+        #print(self.ctx.dtype)
 
         classnames = [name.replace("_", " ") for name in classnames]
+        print('CLASSNAMES', classnames)
         name_lens = [len(_tokenizer.encode(name)) for name in classnames]
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
 
         tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts])
+        #tokenized_prompts = torch.cat([_tokenizer(p) for p in prompts]) # CHANGE: tokenizer
         with torch.no_grad():
             embedding = clip_model.token_embedding(tokenized_prompts).type(dtype)
 
@@ -191,12 +210,20 @@ class CustomCLIP(nn.Module):
         self.text_encoder = TextEncoder(clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
+        
+        #print('CustomCLIP dtype:', self.dtype)
 
     def forward(self, image):
         image_features = self.image_encoder(image.type(self.dtype))
 
         prompts = self.prompt_learner()
         tokenized_prompts = self.tokenized_prompts
+        # print('\nprompts')
+        # print(prompts[0])
+        # print()
+        # print('tokenized_prompts')
+        # print(tokenized_prompts[0])
+        # print()
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
         image_features = image_features / image_features.norm(dim=-1, keepdim=True)
@@ -226,9 +253,15 @@ class CoOp(TrainerX):
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         clip_model = load_clip_to_cpu(cfg)
         
+        # print('clip_model.dtype 1)
+        # print(clip_model.dtype)
+        
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             # CLIP's default precision is fp16
             clip_model.float()
+            
+        # print('clip_model.dtype 2')
+        # print(clip_model.dtype)
 
         print("Building custom CLIP")
         self.model = CustomCLIP(cfg, classnames, clip_model)
@@ -272,6 +305,7 @@ class CoOp(TrainerX):
             output = self.model(image)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
+            #print("grad:", self.model.prompt_learner.ctx.grad)
 
         loss_summary = {
             "loss": loss.item(),

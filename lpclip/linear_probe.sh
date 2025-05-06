@@ -1,6 +1,6 @@
-feature_dir=clip_feat
+feature_dir=clip-georsclip_feat
 
-for DATASET in OxfordPets
+for DATASET in EuroSAT
 do
     python linear_probe.py \
     --dataset ${DATASET} \

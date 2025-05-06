@@ -7,31 +7,44 @@ from dassl.utils import mkdir_if_missing
 from .oxford_pets import OxfordPets
 from .dtd import DescribableTextures as DTD
 
+# NEW_CNAMES = {
+#     "AnnualCrop": "Annual Crop Land",
+#     "Forest": "Forest",
+#     "HerbaceousVegetation": "Herbaceous Vegetation Land",
+#     "Highway": "Highway or Road",
+#     "Industrial": "Industrial Buildings",
+#     "Pasture": "Pasture Land",
+#     "PermanentCrop": "Permanent Crop Land",
+#     "Residential": "Residential Buildings",
+#     "River": "River",
+#     "SeaLake": "Sea or Lake",
+# }
+
 NEW_CNAMES = {
-    "AnnualCrop": "Annual Crop Land",
-    "Forest": "Forest",
-    "HerbaceousVegetation": "Herbaceous Vegetation Land",
-    "Highway": "Highway or Road",
-    "Industrial": "Industrial Buildings",
-    "Pasture": "Pasture Land",
-    "PermanentCrop": "Permanent Crop Land",
-    "Residential": "Residential Buildings",
-    "River": "River",
-    "SeaLake": "Sea or Lake",
+    "AnnualCrop": "annual crop land",
+    "Forest": "forest",
+    "HerbaceousVegetation": "brushland or shrubland",
+    "Highway": "highway or road",
+    "Industrial": "industrial buildings or commercial buildings",
+    "Pasture": "pasture land",
+    "PermanentCrop": "permanent crop land",
+    "Residential": "residential buildings or homes or apartments",
+    "River": "river",
+    "SeaLake": "lake or sea",
 }
 
 
 @DATASET_REGISTRY.register()
 class EuroSAT(DatasetBase):
 
-    dataset_dir = "eurosat"
+    dataset_dir = "/home/gridsan/manderson/ovdsat/data/eurosat"
 
     def __init__(self, cfg):
         root = os.path.abspath(os.path.expanduser(cfg.DATASET.ROOT))
-        self.dataset_dir = os.path.join(root, self.dataset_dir)
-        self.image_dir = os.path.join(self.dataset_dir, "2750")
-        self.split_path = os.path.join(self.dataset_dir, "split_zhou_EuroSAT.json")
-        self.split_fewshot_dir = os.path.join(self.dataset_dir, "split_fewshot")
+        #self.dataset_dir = os.path.join(root, self.dataset_dir)
+        self.image_dir = os.path.join(self.dataset_dir, "EuroSAT")
+        self.split_path = os.path.join(self.dataset_dir, "EuroSAT/split_zhou_EuroSAT.json")
+        self.split_fewshot_dir = os.path.join(self.dataset_dir, "EuroSAT/split_fewshot")
         mkdir_if_missing(self.split_fewshot_dir)
 
         if os.path.exists(self.split_path):
@@ -41,6 +54,7 @@ class EuroSAT(DatasetBase):
             OxfordPets.save_split(train, val, test, self.split_path, self.image_dir)
 
         num_shots = cfg.DATASET.NUM_SHOTS
+        print(num_shots)
         if num_shots >= 1:
             seed = cfg.SEED
             preprocessed = os.path.join(self.split_fewshot_dir, f"shot_{num_shots}-seed_{seed}.pkl")
@@ -58,8 +72,12 @@ class EuroSAT(DatasetBase):
                 with open(preprocessed, "wb") as file:
                     pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
 
-        subsample = cfg.DATASET.SUBSAMPLE_CLASSES
-        train, val, test = OxfordPets.subsample_classes(train, val, test, subsample=subsample)
+        #subsample = cfg.DATASET.SUBSAMPLE_CLASSES
+        #train, val, test = OxfordPets.subsample_classes(train, val, test, subsample=subsample)
+        train, val, test = OxfordPets.subsample_classes(train, val, test)
+        
+        print("\nSIZES")
+        print(len(train), len(val), len(test))
 
         super().__init__(train_x=train, val=val, test=test)
 

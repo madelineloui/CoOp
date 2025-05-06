@@ -20,13 +20,15 @@ from datasets.imagenetv2 import ImageNetV2
 from datasets.imagenet_sketch import ImageNetSketch
 from datasets.imagenet_a import ImageNetA
 from datasets.imagenet_r import ImageNetR
+from datasets.dior import DIOR
 
 from dassl.utils import setup_logger, set_random_seed, collect_env_info
 from dassl.config import get_cfg_default
 from dassl.data.transforms import build_transform
 from dassl.data import DatasetWrapper
 
-import clip
+#import clip
+from clip import clip #CHANGE
 
 # import pdb; pdb.set_trace()
 
@@ -142,7 +144,18 @@ def main(args):
     ########################################
     #   Setup Network
     ########################################
-    clip_model, _ = clip.load("RN50", "cuda", jit=False)
+    #clip_model, _ = clip.load("RN50", "cuda", jit=False)
+    
+    clip_model, _ = clip.load("ViT-L/14", "cuda", jit=False) #CHANGE
+    
+    # CHANGE
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-fmow-4.pt', map_location="cpu")
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RemoteCLIP-ViT-L-14.pt', map_location="cpu")
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RS5M_ViT-L-14.pt', map_location="cpu")
+    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-fmow-length.pt', map_location="cpu")
+    #clip_model = clip.build_model(state_dict)
+    clip_model.cuda()
+    
     clip_model.eval()
     ###################################################################################################################
     # Start Feature Extractor
@@ -151,7 +164,7 @@ def main(args):
     train_dataiter = iter(data_loader)
     for train_step in range(1, len(train_dataiter) + 1):
         batch = next(train_dataiter)
-        data = batch["img"].cuda()
+        data = batch["img"].cuda().half() #CHANGE (switch to half precision)
         feature = clip_model.visual(data)
         feature = feature.cpu()
         for idx in range(len(data)):
