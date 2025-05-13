@@ -11,6 +11,7 @@ from .dtd import DescribableTextures as DTD
 NEW_CNAMES = {
     "airplane": "airplane",
     "airport": "airport",
+    "background": "background",
     "baseballfield": "baseball field",
     "basketballcourt": "basketball court",
     "bridge": "bridge",
@@ -73,6 +74,39 @@ def load_coco_split(anno_path, image_dir, new_cnames=None):
     return dataset
 
 
+def load_directory_split(root_dir, new_cnames=None):
+    """
+    Load data from a directory with class-named folders containing images.
+    
+    Args:
+        root_dir (str): Path to the dataset root directory.
+        new_cnames (dict, optional): Optional mapping from original to new class names.
+    
+    Returns:
+        List[Datum]: A list of Datum instances.
+    """
+    dataset = []
+    label_map = {}
+    next_label = 0
+
+    for class_folder in sorted(os.listdir(root_dir)):
+        class_path = os.path.join(root_dir, class_folder)
+        if not os.path.isdir(class_path):
+            continue
+
+        classname = new_cnames[class_folder] if new_cnames and class_folder in new_cnames else class_folder
+        label = label_map.setdefault(classname, next_label)
+        if label == next_label:
+            next_label += 1
+
+        for fname in os.listdir(class_path):
+            if fname.lower().endswith((".jpg")):
+                impath = os.path.join(class_path, fname)
+                dataset.append(Datum(impath=impath, label=label, classname=classname))
+
+    return dataset
+
+
 @DATASET_REGISTRY.register()
 class DIOR(DatasetBase):
 
@@ -82,51 +116,31 @@ class DIOR(DatasetBase):
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
             
-        if num_shots > 0:
-            self.dataset_dir = os.path.join(root, self.dataset_dir, 'dior')
-            self.image_dir = os.path.join(self.dataset_dir, "JPEGImages")
-            self.train_path = os.path.join(self.dataset_dir, f"train_coco_subset_N{num_shots}-{M}.json")
-            self.val_path = os.path.join(self.dataset_dir, f"train_coco_finetune_val-{M}.json")
-            self.test_path = os.path.join(self.dataset_dir, f"val_coco-{M}.json")
-            self.split_fewshot_dir = os.path.join(self.dataset_dir, "split_fewshot")
+        if num_shots > 0: #TODO: don't hardcode paths
+            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
+            val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
+            test_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/test/dior_test-{M}'
+            train = load_directory_split(train_path, new_cnames=NEW_CNAMES)
+            val = load_directory_split(val_path, new_cnames=NEW_CNAMES)
+            test = load_directory_split(test_path, new_cnames=NEW_CNAMES)
             
-            mkdir_if_missing(self.split_fewshot_dir)
+            ### This is for loading from coco annotations, but doesn't crop the image so don't use anymore
+#             self.dataset_dir = os.path.join(root, self.dataset_dir, 'dior')
+#             self.image_dir = os.path.join(self.dataset_dir, "JPEGImages")
+#             self.train_path = os.path.join(self.dataset_dir, f"train_coco_subset_N{num_shots}-{M}.json")
+#             self.val_path = os.path.join(self.dataset_dir, f"train_coco_finetune_val-{M}.json")
+#             self.test_path = os.path.join(self.dataset_dir, f"val_coco-{M}.json")
+#             self.split_fewshot_dir = os.path.join(self.dataset_dir, "split_fewshot")
+            
+#             mkdir_if_missing(self.split_fewshot_dir)
+            
+#             train = load_coco_split(self.train_path, self.image_dir, new_cnames=NEW_CNAMES)
 
-            train = load_coco_split(self.train_path, self.image_dir, new_cnames=NEW_CNAMES)
+#             print('create val subset: min(num_shots, 4)')
+#             val = load_coco_split(self.val_path, self.image_dir, new_cnames=NEW_CNAMES)
+#             val = self.generate_fewshot_dataset(val, num_shots=min(num_shots, 4)) # Limit # val samples like original coop
+#             test = load_coco_split(self.test_path, self.image_dir, new_cnames=NEW_CNAMES)
 
-            print('create val subset: min(num_shots, 4)')
-            val = load_coco_split(self.val_path, self.image_dir, new_cnames=NEW_CNAMES)
-            val = self.generate_fewshot_dataset(val, num_shots=min(num_shots, 4)) # Limit # val samples like original coop
-            test = load_coco_split(self.test_path, self.image_dir, new_cnames=NEW_CNAMES)
-
-            '''
-            if os.path.exists(self.split_path):
-                train, val, test = OxfordPets.read_split(self.split_path, self.image_dir)
-            else:
-                train, val, test = DTD.read_and_split_data(self.image_dir, new_cnames=NEW_CNAMES)
-                OxfordPets.save_split(train, val, test, self.split_path, self.image_dir)
-
-            num_shots = cfg.DATASET.NUM_SHOTS
-            if num_shots >= 1:
-                seed = cfg.SEED
-                preprocessed = os.path.join(self.split_fewshot_dir, f"shot_{num_shots}-seed_{seed}.pkl")
-
-                if os.path.exists(preprocessed):
-                    print(f"Loading preprocessed few-shot data from {preprocessed}")
-                    with open(preprocessed, "rb") as file:
-                        data = pickle.load(file)
-                        train, val = data["train"], data["val"]
-                else:
-                    train = self.generate_fewshot_dataset(train, num_shots=num_shots)
-                    val = self.generate_fewshot_dataset(val, num_shots=min(num_shots, 4))
-                    data = {"train": train, "val": val}
-                    print(f"Saving preprocessed few-shot data to {preprocessed}")
-                    with open(preprocessed, "wb") as file:
-                        pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
-
-            subsample = cfg.DATASET.SUBSAMPLE_CLASSES
-            train, val, test = OxfordPets.subsample_classes(train, val, test, subsample=subsample)
-        '''
         else:
             dataset_dir = "/home/gridsan/manderson/ovdsat/data/dior"
             self.dataset_dir = os.path.join(dataset_dir, 'dior')
