@@ -116,13 +116,16 @@ class DIOR(DatasetBase):
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
             
-        if num_shots > 0: #TODO: don't hardcode paths
-            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
-            val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
-            test_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/test/dior_test-{M}'
-            train = load_directory_split(train_path, new_cnames=NEW_CNAMES)
-            val = load_directory_split(val_path, new_cnames=NEW_CNAMES)
-            test = load_directory_split(test_path, new_cnames=NEW_CNAMES)
+        #if num_shots > 0: #TODO: don't hardcode paths
+        train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
+        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
+        test_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/test/dior_test-{M}'
+        # train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N10-1'
+        # val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-1'
+        # test_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/test/dior_test-1'
+        train = load_directory_split(train_path, new_cnames=NEW_CNAMES)
+        val = load_directory_split(val_path, new_cnames=NEW_CNAMES)
+        test = load_directory_split(test_path, new_cnames=NEW_CNAMES)
             
             ### This is for loading from coco annotations, but doesn't crop the image so don't use anymore
 #             self.dataset_dir = os.path.join(root, self.dataset_dir, 'dior')
@@ -141,14 +144,14 @@ class DIOR(DatasetBase):
 #             val = self.generate_fewshot_dataset(val, num_shots=min(num_shots, 4)) # Limit # val samples like original coop
 #             test = load_coco_split(self.test_path, self.image_dir, new_cnames=NEW_CNAMES)
 
-        else:
-            dataset_dir = "/home/gridsan/manderson/ovdsat/data/dior"
-            self.dataset_dir = os.path.join(dataset_dir, 'dior')
-            self.image_dir = os.path.join(dataset_dir, "JPEGImages")
-            self.split_fewshot_dir = os.path.join(dataset_dir, "split_fewshot")
+#         else:
+#             dataset_dir = "/home/gridsan/manderson/ovdsat/data/dior"
+#             self.dataset_dir = os.path.join(dataset_dir, 'dior')
+#             self.image_dir = os.path.join(dataset_dir, "JPEGImages")
+#             self.split_fewshot_dir = os.path.join(dataset_dir, "split_fewshot")
             
-            train, val, test = DTD.read_and_split_data(self.image_dir, new_cnames=NEW_CNAMES)
-            OxfordPets.save_split(train, val, test, self.split_path, self.image_dir)
+#             train, val, test = DTD.read_and_split_data(self.image_dir, new_cnames=NEW_CNAMES)
+#             OxfordPets.save_split(train, val, test, self.split_path, self.image_dir)
         
         print(f"Loaded training set size: {len(train) if train else 0}")
         print(f"Loaded val set size: {len(val) if val else 0}")

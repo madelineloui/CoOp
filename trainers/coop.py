@@ -41,6 +41,10 @@ def load_clip_to_cpu(cfg):
     model = clip.build_model(state_dict)
                              
     #print('load_clip_to_cpu model dtype:', model.dtype)
+    
+    print('logit_scale')
+    print(model.logit_scale)
+    print()
         
     return model
 
@@ -291,6 +295,9 @@ class CoOp(TrainerX):
 
     def forward_backward(self, batch):
         image, label = self.parse_batch_train(batch)
+        
+        # print("Labels:", label)
+        # print("Label min:", label.min().item(), "Label max:", label.max().item())
         
         prec = self.cfg.TRAINER.COOP.PREC
         if prec == "amp":
