@@ -42,9 +42,9 @@ def load_clip_to_cpu(cfg):
                              
     #print('load_clip_to_cpu model dtype:', model.dtype)
     
-    print('logit_scale')
-    print(model.logit_scale)
-    print()
+    # print('logit_scale')
+    # print(model.logit_scale)
+    # print()
         
     return model
 
@@ -61,6 +61,8 @@ class TextEncoder(nn.Module):
         #print('TextEncoder dtype:', self.dtype)
 
     def forward(self, prompts, tokenized_prompts):
+        # print('positional_embedding DEBUG')
+        # print(self.positional_embedding[:5,:5])
         x = prompts + self.positional_embedding.type(self.dtype)
         x = x.permute(1, 0, 2)  # NLD -> LND
         x = self.transformer(x)
@@ -108,8 +110,8 @@ class PromptLearner(nn.Module):
             nn.init.normal_(ctx_vectors, std=0.02)
             prompt_prefix = " ".join(["X"] * n_ctx)
 
-        print(f'Initial context: "{prompt_prefix}"')
-        print(f"Number of context words (tokens): {n_ctx}")
+        # print(f'Initial context: "{prompt_prefix}"')
+        # print(f"Number of context words (tokens): {n_ctx}")
 
         self.ctx = nn.Parameter(ctx_vectors)  # to be optimized
         
@@ -120,6 +122,9 @@ class PromptLearner(nn.Module):
         print('CLASSNAMES', classnames)
         name_lens = [len(_tokenizer.encode(name)) for name in classnames]
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
+        
+        print('DEBUG')
+        print(classnames)
 
         tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts])
         #tokenized_prompts = torch.cat([_tokenizer(p) for p in prompts]) # CHANGE: tokenizer
@@ -219,6 +224,9 @@ class CustomCLIP(nn.Module):
 
     def forward(self, image):
         image_features = self.image_encoder(image.type(self.dtype))
+        
+        # print('clip model DEBUG')
+        # print(self.image_encoder.conv1.weight[0, 0, :5, :5])
 
         prompts = self.prompt_learner()
         tokenized_prompts = self.tokenized_prompts
@@ -230,10 +238,24 @@ class CustomCLIP(nn.Module):
         # print()
         text_features = self.text_encoder(prompts, tokenized_prompts)
 
-        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        # print('image_features')
+        # print(image_features.shape)
+        # print('image_features norm')
+        # print(image_features.norm(dim=-1, keepdim=True).shape)
+        # print('text_features')
+        # print(text_features.shape)
+        # print('text_features norm')
+        # print(text_features.norm(dim=-1, keepdim=True).shape)
+        # image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        # print('img feature mean')
+        # print(image_features.mean().item())
+        # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+        # print('txt feature mean')
+        # print(text_features.mean().item())
 
         logit_scale = self.logit_scale.exp()
+        # print('logit_scale')
+        # print(logit_scale)
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
