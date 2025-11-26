@@ -34,17 +34,9 @@ def load_clip_to_cpu(cfg):
 
     model = clip.build_model(state_dict or model.state_dict())
     
-    ## CHANGE
-    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-fmow-4.pt', map_location="cpu")
+    ## CHANGE manually!!!
     state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RemoteCLIP-ViT-L-14.pt', map_location="cpu")
-    #state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RS5M_ViT-L-14.pt', map_location="cpu")
-    model = clip.build_model(state_dict)
-                             
-    #print('load_clip_to_cpu model dtype:', model.dtype)
-    
-    # print('logit_scale')
-    # print(model.logit_scale)
-    # print()
+    model = clip.build_model(state_dict) 
         
     return model
 
@@ -57,12 +49,8 @@ class TextEncoder(nn.Module):
         self.ln_final = clip_model.ln_final
         self.text_projection = clip_model.text_projection
         self.dtype = clip_model.dtype
-        
-        #print('TextEncoder dtype:', self.dtype)
 
     def forward(self, prompts, tokenized_prompts):
-        # print('positional_embedding DEBUG')
-        # print(self.positional_embedding[:5,:5])
         x = prompts + self.positional_embedding.type(self.dtype)
         x = x.permute(1, 0, 2)  # NLD -> LND
         x = self.transformer(x)
@@ -86,8 +74,6 @@ class PromptLearner(nn.Module):
         clip_imsize = clip_model.visual.input_resolution
         cfg_imsize = cfg.INPUT.SIZE[0]
         assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
-        
-        #print('PromptLearner dtype:', dtype)
 
         if ctx_init:
             # use given words to initialize context vectors
@@ -110,21 +96,13 @@ class PromptLearner(nn.Module):
             nn.init.normal_(ctx_vectors, std=0.02)
             prompt_prefix = " ".join(["X"] * n_ctx)
 
-        # print(f'Initial context: "{prompt_prefix}"')
-        # print(f"Number of context words (tokens): {n_ctx}")
-
         self.ctx = nn.Parameter(ctx_vectors)  # to be optimized
-        
-        #print('self.ctx.dtype')
-        #print(self.ctx.dtype)
 
         classnames = [name.replace("_", " ") for name in classnames]
         print('CLASSNAMES', classnames)
         name_lens = [len(_tokenizer.encode(name)) for name in classnames]
         prompts = [prompt_prefix + " " + name + "." for name in classnames]
-        
-        print('DEBUG')
-        print(classnames)
+        print('CLASSNAMES', classnames)
 
         tokenized_prompts = torch.cat([clip.tokenize(p) for p in prompts])
         #tokenized_prompts = torch.cat([_tokenizer(p) for p in prompts]) # CHANGE: tokenizer
@@ -219,43 +197,18 @@ class CustomCLIP(nn.Module):
         self.text_encoder = TextEncoder(clip_model)
         self.logit_scale = clip_model.logit_scale
         self.dtype = clip_model.dtype
-        
-        #print('CustomCLIP dtype:', self.dtype)
 
     def forward(self, image):
         image_features = self.image_encoder(image.type(self.dtype))
-        
-        # print('clip model DEBUG')
-        # print(self.image_encoder.conv1.weight[0, 0, :5, :5])
 
         prompts = self.prompt_learner()
         tokenized_prompts = self.tokenized_prompts
-        # print('\nprompts')
-        # print(prompts[0])
-        # print()
-        # print('tokenized_prompts')
-        # print(tokenized_prompts[0])
-        # print()
         text_features = self.text_encoder(prompts, tokenized_prompts)
-
-        # print('image_features')
-        # print(image_features.shape)
-        # print('image_features norm')
-        # print(image_features.norm(dim=-1, keepdim=True).shape)
-        # print('text_features')
-        # print(text_features.shape)
-        # print('text_features norm')
-        # print(text_features.norm(dim=-1, keepdim=True).shape)
-        # image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-        # print('img feature mean')
-        # print(image_features.mean().item())
-        # text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-        # print('txt feature mean')
-        # print(text_features.mean().item())
+        
+        image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
 
         logit_scale = self.logit_scale.exp()
-        # print('logit_scale')
-        # print(logit_scale)
         logits = logit_scale * image_features @ text_features.t()
 
         return logits
@@ -279,15 +232,9 @@ class CoOp(TrainerX):
         print(f"Loading CLIP (backbone: {cfg.MODEL.BACKBONE.NAME})")
         clip_model = load_clip_to_cpu(cfg)
         
-        # print('clip_model.dtype 1)
-        # print(clip_model.dtype)
-        
         if cfg.TRAINER.COOP.PREC == "fp32" or cfg.TRAINER.COOP.PREC == "amp":
             # CLIP's default precision is fp16
             clip_model.float()
-            
-        # print('clip_model.dtype 2')
-        # print(clip_model.dtype)
 
         print("Building custom CLIP")
         self.model = CustomCLIP(cfg, classnames, clip_model)
@@ -318,9 +265,6 @@ class CoOp(TrainerX):
     def forward_backward(self, batch):
         image, label = self.parse_batch_train(batch)
         
-        # print("Labels:", label)
-        # print("Label min:", label.min().item(), "Label max:", label.max().item())
-        
         prec = self.cfg.TRAINER.COOP.PREC
         if prec == "amp":
             with autocast():
@@ -334,7 +278,6 @@ class CoOp(TrainerX):
             output = self.model(image)
             loss = F.cross_entropy(output, label)
             self.model_backward_and_update(loss)
-            #print("grad:", self.model.prompt_learner.ctx.grad)
 
         loss_summary = {
             "loss": loss.item(),
