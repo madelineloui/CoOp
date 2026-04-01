@@ -89,10 +89,10 @@ def load_directory_split(root_dir, new_cnames=None):
 
     for class_folder in sorted(os.listdir(root_dir)):
         # TODO remove background for now
-        if class_folder.lower() == "background" or class_folder.lower() == ".ipynb_checkpoints":
-            continue
-        # if class_folder.lower() == ".ipynb_checkpoints":
+        # if class_folder.lower() == "background" or class_folder.lower() == ".ipynb_checkpoints":
         #     continue
+        if class_folder.lower() == ".ipynb_checkpoints":
+            continue
         class_path = os.path.join(root_dir, class_folder)
         if not os.path.isdir(class_path):
             continue
@@ -111,18 +111,18 @@ def load_directory_split(root_dir, new_cnames=None):
 
 
 @DATASET_REGISTRY.register()
-class DIOR(DatasetBase):
+class NWPU(DatasetBase):
 
     def __init__(self, cfg):
         M = cfg.SEED
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
-        
+            
         #TODO: don't hardcode paths
-        train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
+        train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/nwpu/train/nwpu_N{num_shots}-{M}'
         print('train_path:', train_path)
         #TODO: change back after N100
-        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
+        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/nwpu/val/nwpu_val-{M}'
         print('val_path:', val_path)
 
         train = load_directory_split(train_path, new_cnames=NEW_CNAMES)

@@ -9,29 +9,27 @@ from .oxford_pets import OxfordPets
 from .dtd import DescribableTextures as DTD
 
 NEW_CNAMES = {
-    "airplane": "airplane",
-    "airport": "airport",
-    "baseballfield": "baseball field",
-    "basketballcourt": "basketball court",
-    "background": "background",
-    "bridge": "bridge",
-    "chimney": "chimney",
-    "dam": "dam",
-    "Expressway-Service-area": "expressway service area",
-    "Expressway-toll-station": "expressway toll station",
-    "golffield": "golf field",
-    "groundtrackfield": "ground track field",
-    "harbor": "harbor",
-    "overpass": "overpass",
-    "ship": "ship",
-    "stadium": "stadium",
-    "storagetank": "storage tank",
-    "tenniscourt": "tennis court",
-    "trainstation": "train station",
-    "vehicle": "vehicle",
-    "windmill": "windmill",
+    "SU-35":  "SU-35 aircraft",
+    "C-130":  "C-130 aircraft",
+    "C-17":   "C-17 aircraft",
+    "C-5":    "C-5 aircraft",
+    "F-16":   "F-16 aircraft",
+    "TU-160": "TU-160 aircraft",
+    "E-3":    "E-3 aircraft",
+    "B-52":   "B-52 aircraft",
+    "P-3C":   "P-3C aircraft",
+    "B-1B":   "B-1B aircraft",
+    "E-8":    "E-8 aircraft",
+    "TU-22":  "TU-22 aircraft",
+    "F-15":   "F-15 aircraft",
+    "KC-135": "KC-135 aircraft",
+    "F-22":   "F-22 aircraft",
+    "FA-18":  "FA-18 aircraft",
+    "TU-95":  "TU-95 aircraft",
+    "KC-1":   "KC-1 aircraft",
+    "SU-34":  "SU-34 aircraft",
+    "SU-24":  "SU-24 aircraft",
 }
-#    "background": "background",
 
 def load_coco_split(anno_path, image_dir, new_cnames=None):
     """
@@ -89,10 +87,10 @@ def load_directory_split(root_dir, new_cnames=None):
 
     for class_folder in sorted(os.listdir(root_dir)):
         # TODO remove background for now
-        if class_folder.lower() == "background" or class_folder.lower() == ".ipynb_checkpoints":
-            continue
-        # if class_folder.lower() == ".ipynb_checkpoints":
+        # if class_folder.lower() == "background" or class_folder.lower() == ".ipynb_checkpoints":
         #     continue
+        if class_folder.lower() == ".ipynb_checkpoints":
+            continue
         class_path = os.path.join(root_dir, class_folder)
         if not os.path.isdir(class_path):
             continue
@@ -111,18 +109,21 @@ def load_directory_split(root_dir, new_cnames=None):
 
 
 @DATASET_REGISTRY.register()
-class DIOR(DatasetBase):
+class MAR(DatasetBase):
 
     def __init__(self, cfg):
         M = cfg.SEED
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
-        
-        #TODO: don't hardcode paths
-        train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
+        data_aug = cfg.DATASET.DATA_AUG
+            
+        if data_aug:
+            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/mar/train/mar_N{num_shots}-{M}-{data_aug}'
+        else:
+            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/mar/train/mar_N{num_shots}-{M}'
         print('train_path:', train_path)
-        #TODO: change back after N100
-        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
+
+        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/mar/val/mar_val-{M}'
         print('val_path:', val_path)
 
         train = load_directory_split(train_path, new_cnames=NEW_CNAMES)

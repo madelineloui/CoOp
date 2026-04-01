@@ -9,27 +9,21 @@ from .oxford_pets import OxfordPets
 from .dtd import DescribableTextures as DTD
 
 NEW_CNAMES = {
-    "airplane": "airplane",
-    "airport": "airport",
-    "baseballfield": "baseball field",
-    "basketballcourt": "basketball court",
-    "background": "background",
-    "bridge": "bridge",
-    "chimney": "chimney",
-    "dam": "dam",
-    "Expressway-Service-area": "expressway service area",
-    "Expressway-toll-station": "expressway toll station",
-    "golffield": "golf field",
-    "groundtrackfield": "ground track field",
-    "harbor": "harbor",
-    "overpass": "overpass",
-    "ship": "ship",
-    "stadium": "stadium",
-    "storagetank": "storage tank",
-    "tenniscourt": "tennis court",
-    "trainstation": "train station",
-    "vehicle": "vehicle",
-    "windmill": "windmill",
+    "car": "car",
+    "truck": "truck",
+    "airliner": "airliner",
+    "stairtruck": "stair truck",
+    "van": "van",
+    "bus": "bus",
+    "longvehicle": "long vehicle",
+    "boat": "boat",
+    "propeller": "propeller aircraft",
+    "chartered": "chartered aircraft",
+    "pushbacktruck": "pushback truck",
+    "other": "others",
+    "fighter": "fighter aircraft",
+    "trainer": "trainer aircraft",
+    "helicopter": "helicopter",
 }
 #    "background": "background",
 
@@ -111,18 +105,21 @@ def load_directory_split(root_dir, new_cnames=None):
 
 
 @DATASET_REGISTRY.register()
-class DIOR(DatasetBase):
+class SIMD(DatasetBase):
 
     def __init__(self, cfg):
         M = cfg.SEED
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
-        
-        #TODO: don't hardcode paths
-        train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/train/dior_N{num_shots}-{M}'
+        data_aug = cfg.DATASET.DATA_AUG
+
+        if data_aug:
+            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/simd/train/simd_N{num_shots}-{M}-{data_aug}'
+        else:
+            train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/simd/train/simd_N{num_shots}-{M}'
         print('train_path:', train_path)
-        #TODO: change back after N100
-        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/dior/val/dior_val-{M}'
+        
+        val_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/simd/val/simd_val-{M}'
         print('val_path:', val_path)
 
         train = load_directory_split(train_path, new_cnames=NEW_CNAMES)
