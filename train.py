@@ -17,7 +17,6 @@ import datasets.sun397
 import datasets.caltech101
 import datasets.ucf101
 import datasets.imagenet
-import datasets.dior
 
 import datasets.imagenet_sketch
 import datasets.imagenetv2
@@ -27,6 +26,11 @@ import datasets.imagenet_r
 import trainers.coop
 import trainers.cocoop
 import trainers.zsclip
+
+import datasets.dior
+import datasets.mar
+import datasets.nwpu
+import datasets.simd
 
 
 def print_args(args, cfg):
