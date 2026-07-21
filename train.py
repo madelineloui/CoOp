@@ -31,6 +31,7 @@ import datasets.dior
 import datasets.mar
 import datasets.nwpu
 import datasets.simd
+import datasets.rareplanes
 
 
 def print_args(args, cfg):

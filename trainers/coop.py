@@ -13,30 +13,56 @@ from dassl.optim import build_optimizer, build_lr_scheduler
 from clip import clip
 from clip.simple_tokenizer import SimpleTokenizer as _Tokenizer
 
-from transformers import CLIPModel, CLIPTokenizer
+#from transformers import CLIPModel, CLIPTokenizer
 
 _tokenizer = _Tokenizer()
+
+import open_clip
 
 
 def load_clip_to_cpu(cfg):
     
     backbone_name = cfg.MODEL.BACKBONE.NAME
-    url = clip._MODELS[backbone_name]
+    print('-> using backbone:', backbone_name)
+    
+    # Start with this for all
+    url = clip._MODELS["ViT-L/14"]
     model_path = clip._download(url)
-
     try:
         # loading JIT archive
         model = torch.jit.load(model_path, map_location="cpu").eval()
         state_dict = None
-
     except RuntimeError:
         state_dict = torch.load(model_path, map_location="cpu")
-
     model = clip.build_model(state_dict or model.state_dict())
     
-    ## CHANGE manually!!!
-    state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RemoteCLIP-ViT-L-14.pt', map_location="cpu")
-    model = clip.build_model(state_dict) 
+    if backbone_name == 'clip-14':
+        print('LOADED CLIP-14!')
+        
+    if backbone_name == 'openclip-14':
+        model, _, _ = open_clip.create_model_and_transforms('ViT-L-14', pretrained='openai')
+        model.dtype = next(model.visual.parameters()).dtype
+        print('LOADED OPENCLIP-14!')
+    
+    elif backbone_name == 'remoteclip-14':
+        state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RemoteCLIP-ViT-L-14.pt', map_location="cpu")
+        model = clip.build_model(state_dict) 
+        print('LOADED REMOTECLIP-14!')
+        
+    elif backbone_name == 'georsclip-14':
+        state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/RS5M_ViT-L-14.pt', map_location="cpu")
+        model = clip.build_model(state_dict) 
+        print('LOADED GEORSCLIP-14!')
+    
+    elif backbone_name == 'openclip-14-remote-fmow':
+        state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-remote-fmow-summary-epoch100.pt', map_location="cpu")
+        model = clip.build_model(state_dict) 
+        print('LOADED RemoteCLIP-14+FMOW!')
+        
+    elif backbone_name == 'openclip-14-geors-fmow':
+        state_dict = torch.load('/home/gridsan/manderson/ovdsat/weights/vlm4rs/openclip-geors-fmow-summary-epoch100.pt', map_location="cpu")
+        model = clip.build_model(state_dict) 
+        print('LOADED GEORSCLIP-14+FMOW!')
         
     return model
 
@@ -70,8 +96,16 @@ class PromptLearner(nn.Module):
         n_ctx = cfg.TRAINER.COOP.N_CTX
         ctx_init = cfg.TRAINER.COOP.CTX_INIT
         dtype = clip_model.dtype
+        # if cfg.MODEL.BACKBONE.NAME == 'openclip-14':
+        #     dtype = next(clip_model.visual.parameters()).dtype
+        # else:
+        #     dtype = clip_model.dtype
         ctx_dim = clip_model.ln_final.weight.shape[0]
-        clip_imsize = clip_model.visual.input_resolution
+        #clip_imsize = clip_model.visual.input_resolution
+        if hasattr(clip_model.visual, "input_resolution"):  # OpenAI CLIP
+            clip_imsize = clip_model.visual.input_resolution
+        elif hasattr(clip_model.visual, "image_size"):      # OpenCLIP
+            clip_imsize = clip_model.visual.image_size[0]
         cfg_imsize = cfg.INPUT.SIZE[0]
         assert cfg_imsize == clip_imsize, f"cfg_imsize ({cfg_imsize}) must equal to clip_imsize ({clip_imsize})"
 

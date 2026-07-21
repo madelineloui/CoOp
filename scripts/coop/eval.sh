@@ -10,9 +10,9 @@ module load anaconda/2023a
 source activate dassl
 
 # custom config
-DATA=/path/to/datasets
+DATA=/home/gridsan/manderson/ovdsat/data/
 TRAINER=CoOp
-SHOTS=10
+SHOTS=3
 NCTX=4
 CSC=False
 CTP=middle
@@ -30,7 +30,7 @@ do
     --config-file configs/trainers/${TRAINER}/${CFG}.yaml \
     --output-dir output/evaluation/${TRAINER}/${CFG}_${SHOTS}shots/nctx${NCTX}_csc${CSC}_ctp${CTP}/${DATASET}/seed${SEED} \
     --model-dir output/${DATASET}/${TRAINER}/${CFG}_${SHOTS}shots/nctx${NCTX}_csc${CSC}_ctp${CTP}/seed${SEED} \
-    --load-epoch 200 \
+    --load-epoch 50 \
     --eval-only \
     TRAINER.COOP.N_CTX ${NCTX} \
     TRAINER.COOP.CSC ${CSC} \

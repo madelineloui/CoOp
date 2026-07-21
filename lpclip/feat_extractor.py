@@ -21,6 +21,7 @@ from datasets.imagenet_sketch import ImageNetSketch
 from datasets.imagenet_a import ImageNetA
 from datasets.imagenet_r import ImageNetR
 from datasets.dior import DIOR
+from datasets.nwpu import NWPU
 
 from dassl.utils import setup_logger, set_random_seed, collect_env_info
 from dassl.config import get_cfg_default

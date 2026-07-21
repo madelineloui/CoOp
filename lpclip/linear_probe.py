@@ -24,7 +24,7 @@ os.makedirs("report", exist_ok=True)
 
 val_shot_list = {1: 1, 2: 2, 4: 4, 8: 4, 16: 4}
 
-for num_shot in [1, 2, 4, 8, 16]:
+for num_shot in [1]:
     test_acc_step_list = np.zeros([args.num_run, args.num_step])
     for seed in range(1, args.num_run + 1):
         np.random.seed(seed)

@@ -4,7 +4,7 @@ OUTPUT='./clip_feat/'
 SEED=1
 
 # oxford_pets oxford_flowers fgvc_aircraft dtd eurosat stanford_cars food101 sun397 caltech101 ucf101 imagenet
-for DATASET in dior
+for DATASET in nwpu
 do
     for SPLIT in train val test
     do
