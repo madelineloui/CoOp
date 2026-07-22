@@ -9,12 +9,12 @@ from .oxford_pets import OxfordPets
 from .dtd import DescribableTextures as DTD
 
 NEW_CNAMES = {
-    "Large Civil Transport/Utility": "Large Civil Transport/Utility aircraft",
-    "Medium Civil Transport/Utility": "Medium Civil Transport/Utility aircraft",
-    "Military Fighter/Interceptor/Attack": "Military Fighter/Interceptor/Attack aircraft",
+    "Large Civil Transport or Utility": "Large Civil Transport or Utility aircraft",
+    "Medium Civil Transport or Utility": "Medium Civil Transport or Utility aircraft",
+    "Military Fighter or Interceptor or Attack": "Military Fighter or Interceptor or Attack aircraft",
     "Military Trainer": "Military Trainer aircraft",
-    "Military Transport/Utility/AWAC": "Military Transport/Utility/AWAC aircraft",
-    "Small Civil Transport/Utility": "Small Civil Transport/Utility aircraft",
+    "Military Transport or Utility or AWAC": "Military Transport or Utility or AWAC aircraft",
+    "Small Civil Transport or Utility": "Small Civil Transport or Utility aircraft",
 }
 
 def load_coco_split(anno_path, image_dir, new_cnames=None):
@@ -99,6 +99,7 @@ class RarePlanes(DatasetBase):
         root = cfg.DATASET.ROOT
         num_shots = cfg.DATASET.NUM_SHOTS
         data_aug = cfg.DATASET.DATA_AUG
+        metadata = cfg.DATASET.METADATA
             
         if data_aug:
             train_path = f'/home/gridsan/manderson/ovdsat/data/cropped_data/rareplanes/train/rareplanes_N{num_shots}-{M}-{data_aug}'
@@ -114,5 +115,26 @@ class RarePlanes(DatasetBase):
         
         print(f"Loaded training set size: {len(train) if train else 0}")
         print(f"Loaded val set size: {len(val) if val else 0}")
+
+        if metadata:
+            print('metadata TRUE')
+            train_metadata_path = f"/home/gridsan/manderson/ovdsat/data/metadata/rareplanes/train/rareplanes_N{num_shots}-{M}"
+            val_metadata_path = f"/home/gridsan/manderson/ovdsat/data/metadata/rareplanes/val/rareplanes_val-{M}"
+
+            for item in train:
+                relative_path = os.path.relpath(item.impath, train_path)
+                txt_path = os.path.join(train_metadata_path, os.path.splitext(relative_path)[0] + ".txt")
+                #print(txt_path)
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    item.metadata = f.read().strip()
+                    #print(item.metadata)
+
+            for item in val:
+                relative_path = os.path.relpath(item.impath, val_path)
+                txt_path = os.path.join(val_metadata_path, os.path.splitext(relative_path)[0] + ".txt")
+                with open(txt_path, "r", encoding="utf-8") as f:
+                    item.metadata = f.read().strip()
+        else:
+            print('metadata FALSE')
 
         super().__init__(train_x=train, test=val)
